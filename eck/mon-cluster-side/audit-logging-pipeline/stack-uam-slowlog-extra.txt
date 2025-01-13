@@ -1,3 +1,4 @@
+PUT _ingest/pipeline/stack-uam-slowlog-extra
 {
   "version": 10,
   "description": "Additional parsing of Elasticsearch slowlogs. Last update 2024-07-08.",
@@ -5,70 +6,13 @@
     {
       "dot_expander": {
         "override": true,
-        "path": "elasticsearch.slowlog",
         "field": "*"
       }
     },
     {
       "rename": {
-        "field": "elasticsearch.slowlog.elasticsearch.slowlog.search_type",
-        "target_field": "elasticsearch.slowlog.search_type",
-        "ignore_missing": true
-      }
-    },
-    {
-      "rename": {
-        "field": "elasticsearch.slowlog.elasticsearch.slowlog.took",
-        "target_field": "elasticsearch.slowlog.took",
-        "ignore_missing": true
-      }
-    },
-    {
-      "rename": {
-        "field": "elasticsearch.slowlog.elasticsearch.slowlog.message",
-        "target_field": "elasticsearch.slowlog.message",
-        "ignore_missing": true
-      }
-    },
-    {
-      "rename": {
-        "field": "elasticsearch.slowlog.elasticsearch.slowlog.stats",
-        "target_field": "elasticsearch.slowlog.stats",
-        "ignore_missing": true
-      }
-    },
-    {
-      "rename": {
-        "field": "elasticsearch.slowlog.elasticsearch.slowlog.source",
-        "target_field": "elasticsearch.slowlog.source",
-        "ignore_missing": true
-      }
-    },
-    {
-      "rename": {
-        "field": "elasticsearch.slowlog.elasticsearch.slowlog.id",
-        "target_field": "elasticsearch.slowlog.id",
-        "ignore_missing": true
-      }
-    },
-    {
-      "rename": {
-        "field": "elasticsearch.slowlog.elasticsearch.slowlog.total_shards",
-        "target_field": "elasticsearch.slowlog.total_shards",
-        "ignore_missing": true
-      }
-    },
-    {
-      "rename": {
-        "field": "elasticsearch.slowlog.elasticsearch.slowlog.took_millis",
+        "field": "elasticsearch.slowlog.took_millis",
         "target_field": "elasticsearch.slowlog.duration",
-        "ignore_missing": true
-      }
-    },
-    {
-      "rename": {
-        "field": "elasticsearch.slowlog.elasticsearch.slowlog.total_hits",
-        "target_field": "elasticsearch.slowlog.total_hits",
         "ignore_missing": true
       }
     },

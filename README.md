@@ -30,13 +30,9 @@ Folders for each deployment mechanism contain a tailored README.md.
 Contents:
 - Assets to manually deploy Stack UAM / [Slowlogging](https://www.elastic.co/guide/en/elasticsearch/reference/current/index-modules-slowlog.html) in an on-premise environment.
 
-2. **assets**
+2. **[assets](./assets/)**
 
 Contents:
 - Dashboard exports:
-   - 8.11-dashboard.ndjson (Full Stack UAM dashboard collection compatible with versions >= 8.11 )
-   - ECK example deployment
-   - pre8.11-dashboard.ndjson (Full Stack UAM dashboard collection compatible with versions <= 8.11 )
    - post8.14-dashboard.ndjdson (Full Stack UAM dashboard collection compatible with versions <= 8.14 )
-   - query-test.ndjson (Testing dashboard for query extraction)
    - slowlog.ndjsonn (Slowlog-only dashboard)

@@ -53,32 +53,3 @@ metadata:
     license.k8s.elastic.co/type: enterprise_trial
   annotations:
     elastic.co/eula: accepted
-
----
-# PersistentVolumeClaim for Kibana and Filebeat
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: kibana-audit-logs-pvc
-  namespace: production
-spec:
-  accessModes:
-    - ReadWriteMany
-  resources:
-    requests:
-      storage: 1Gi
-  storageClassName: standard
----
-# PersistentVolumeClaim for Kibana and Filebeat
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: kibana-audit-logs-pvc
-  namespace: development
-spec:
-  accessModes:
-    - ReadWriteMany
-  resources:
-    requests:
-      storage: 1Gi
-  storageClassName: standard 

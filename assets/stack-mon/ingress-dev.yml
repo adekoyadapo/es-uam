@@ -2,7 +2,7 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: es-ingress
+  name: es-ingress-dev
   namespace: development
   annotations:
     nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"

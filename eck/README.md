@@ -2,7 +2,7 @@
 
 ## **Intro**
 
-This folder contains instructions on the full set of activities to complete the User Activity Monitoring Customer Architecture Play in an On-Premise environment. The approach is broken into Kibana Auditing and Elasticsearch Auditing and combines UAM and enhanced Audit Logging. 
+This folder contains instructions on the full set of activities to complete the User Activity Monitoring Customer Architecture Play in an On-Premise environment. The approach is broken into Kibana Auditing and Elasticsearch Auditing and combines UAM and enhanced Audit Logging.
 
 This guide assumes the following:
 
@@ -54,13 +54,12 @@ spec:
     xpack.security.audit.enabled: true
 ```
 
-This however might have large volumes of unncessay data shipped to monitoring cluster, we can levearge audit log filters to remove what is not needed and esnure only the right logs for UAM are shipped. Examnple can be seen [here](../assets/uam_no_version.yml)
+This however might have large volumes of unncessay data shipped to monitoring cluster, we can levearge audit log filters to remove what is not needed and esnure only the right logs for UAM are shipped.
 
 Key highlights are the filtering in the elasticsearch config and the kibana config
 
 ```
 # elasticsearch
-
 spec:
   version: 8.15.4
   nodeSets:
@@ -77,7 +76,6 @@ spec:
 
 
 # kibana
-
 spec:
   monitoring:
     metrics:
@@ -101,11 +99,9 @@ spec:
     - actions: [saved_object_open_point_in_time, saved_object_close_point_in_time, saved_object_find, space_find]
 ```
 
-This setup however does not allow the fields `service.name` (Cluster Name) and `service.version`(Cluster Version) to be populated. For the capability to extend this functionality, review the content of the [stack-mon](../assets/stack-mon/) folder, a standalone [Filbeat service](../assets/stack-mon/stack_monitoring.yml) levearging [filebeat processors](https://www.elastic.co/guide/en/beats/filebeat/current/filtering-and-enhancing-data.html) to assing the required values and also make changes to the index patterns that will be used in the monitoring cluster.
-
 ***Main Cluster***
 
-1. Ensure security settings have been enabled in elasticsearch.yml if mounted externally or in the ECK config 
+1. Ensure security settings have been enabled in the ECK config 
 
 *The xpack.http.ssl* settings are watcher specific and are required to run the reindexing.
 
@@ -130,10 +126,10 @@ xpack.security.transport.ssl.verification_mode: certificate
 
 ```
 
-2. Enable auditing on every Kibana and Elastic node serving the main cluster(s) as explained above, ensuring that the configurations either in the mounted config files as below or directly in the ECK config as described above and in the example [here](../assets/uam_no_version.yml).:
+2. Enable auditing on every Kibana and Elastic node serving the main cluster(s) as explained above, ensuring that the configurations in the ECK config are as described above:
 
 
-elasticsearch.yml:
+elasticsearch:
 
 ```
 xpack.security.audit.enabled: true
@@ -144,7 +140,7 @@ xpack.security.audit.logfile.events.ignore_filters.realm.realms : [ "_es_api_key
 xpack.security.audit.logfile.events.ignore_filters.internal_system.indices : ["*ml-inference-native-*", "*monitoring-es-*"]
 ```
 
-kibana.yml:
+kibana:
 
 ```
 xpack.security.audit.enabled: true
@@ -178,9 +174,9 @@ xpack.security.audit.ignore_filters:
 3. In Dev Tools, set up the components and pipeline to create the kibana_objects_01 index which contains the object id to name mapping
 
     a) In Dev Tools Console (or via the API), create an ingest pipeline using the config from [ingest-pipeline.txt.](./main-cluster-side/ingest-pipeline.txt)
-    This ingest pipeline extracts the saved objet id from the "_id" field of documents in the kibana_analytics index and removes fields that are not required for analysis. 
+    This ingest pipeline extracts the saved objet id from the "_id" field of documents in the kibana_analytics index and removes fields that are not required for analysis.
 
-    b) Create a component template using the [component-template.txt ](./main-cluster-side/component-template.txt) file. This template contains the mapping for the new kibana objects index and speicifes use of the ingest pipeline.
+    b) Create a component template using the [component-template.txt](./main-cluster-side/component-template.txt) file. This template contains the mapping for the new kibana objects index and speicifes use of the ingest pipeline.
 
     c) Create an index template that uses the component template:
 
@@ -480,4 +476,28 @@ POST _transform/kibana-transform-02/_start
 ```
 
 12. Import the following assets via Stack Management -> Saved Objects:
-- assets/post8.14-dashboard.ndjson
+- [post8.14-dashboard.ndjson](../assets/post8.14-dashboard.ndjson)
+
+***Slowlog and Query capturing***
+13. In the monitoring cluster, ensure slowlogs are turned on for the individual indexes to be monitored. Example
+```
+    PUT kibana_sample_data_ecommerce/_settings
+    {
+        "index.search.slowlog.threshold.query.info": "0ms",
+        "index.search.slowlog.threshold.fetch.info": "0ms"
+    }
+```
+
+
+14. Using the Dev Tools console, create an ingest pipeline in the monitoring cluster for each pipeline in the [pipeline](../eck/mon-cluster-side/audit-logging-pipeline/) folder in this folder.
+
+15. Update the individual filbeat datastream to leverage this new pipeline with the example below
+```
+PUT filebeat-8.15.3/_settings
+{
+    "index.final_pipeline": "stack-uam-router"
+}
+```
+
+16. Import the following assets via Stack Management -> Saved Objects:
+- [slowlog.ndjson](../assets/slowlog.ndjson)
