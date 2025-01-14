@@ -346,8 +346,142 @@ PUT /kibana_objects-prod/_ccr/follow?wait_for_active_shards=1
 }
 ```
 
+6. (Optional) Create ILM policy to ensure that the datastream lifecycle is managed
+```
+PUT _ilm/policy/elastic-logs
+{
+  "policy": {
+    "phases": {
+      "hot": {
+        "min_age": "0ms",
+        "actions": {
+          "rollover": {
+            "max_age": "30d",
+            "max_primary_shard_size": "50gb"
+          }
+        }
+      },
+      "warm": {
+        "min_age": "0d",
+        "actions": {
+          "set_priority": {
+            "priority": 50
+          }
+        }
+      }
+    }
+  }
+}
+```
 
-6. Create an enrich processor using [enrich.txt](./mon-cluster-side/enrich.txt) and execute:
+7. Create component template for the UAM fields
+```
+PUT _component_template/elastic-logs-8-uam_mapping
+{
+  "template": {
+    "mappings": {
+      "properties": {
+        "elasticsearch": {
+          "properties": {
+            "uam": {
+              "properties": {
+                "saved_object": {
+                  "properties": {
+                    "id": {
+                      "ignore_above": 1024,
+                      "type": "keyword"
+                    }
+                  }
+                },
+                "search": {
+                  "properties": {
+                    "date_range": {
+                      "properties": {
+                        "duration": {
+                          "type": "long"
+                        },
+                        "from": {
+                          "ignore_above": 1024,
+                          "type": "keyword"
+                        },
+                        "to": {
+                          "ignore_above": 1024,
+                          "type": "keyword"
+                        }
+                      }
+                    },
+                    "duration": {
+                      "type": "long"
+                    },
+                    "hits": {
+                      "type": "float"
+                    },
+                    "query": {
+                      "ignore_above": 1024,
+                      "type": "keyword"
+                    },
+                    "index": {
+                      "ignore_above": 1024,
+                      "type": "keyword"
+                    },
+                    "id": {
+                      "ignore_above": 1024,
+                      "type": "keyword"
+                    },
+                    "aggregations": {
+                      "ignore_above": 1024,
+                      "type": "keyword"
+                    }
+                  }
+                },
+                "application": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "opaque_id": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "origination": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "error": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+8. Update the individual filebeat with the values [here](./mon-cluster-side/audit-logging-pipeline/filebeat-index-template.txt) datastream index to allow the use of the component template and ilm policy above. This updated templates ensures the UAM fields are populated and that the final pipeline `stack-uam-router` is used by the indices. Replace the index_template name and also the target index-patterns before applying the changes
+
+```
+PUT _index_template/filebeat-8.15.3 # Change this value
+```
+
+```
+# also update this section
+  "index_patterns": [
+    "filebeat-8.15.3"
+  ],
+```
+
+9. Create the ingest pipeline in the monitoring cluster for each pipeline in the [pipeline](../eck/mon-cluster-side/audit-logging-pipeline/) folder in this folder.
+
+10. Rollover the datastream to enable it to use the updates
+
+```
+POST filebeat-8.15.3/_rollover
+```
+
+11. Create an enrich processor using [enrich.txt](./mon-cluster-side/enrich.txt) and execute:
 
     b) Execute the processor
 
@@ -355,9 +489,9 @@ PUT /kibana_objects-prod/_ccr/follow?wait_for_active_shards=1
   PUT _enrich/policy/objectid-policy/_execute
   ```
 
-7. Create an ingest pipeline using [ingest-pipeline.txt](./mon-cluster-side/ingest-pipeline.txt). This utilises the new enrichment policy and set processors to set the title of the object.
+12. Create an ingest pipeline using [ingest-pipeline.txt](./mon-cluster-side/ingest-pipeline.txt). This utilises the new enrichment policy and set processors to set the title of the object.
 
-8. Crete a component template to formalise mappings of the new enriched index that will be used for visualisations.
+13. Crete a component template to formalise mappings of the new enriched index that will be used for visualisations.
 
     a) Use [component-template.txt](./mon-cluster-side/component-template.txt)
 
@@ -379,11 +513,11 @@ PUT _index_template/kibana-transform
 }
 ```
 
-9. Create a transform. The transform filters data from the kibana logs based on the presence of the saved_object.id field. Do not start the transform yet.
+14. Create a transform. The transform filters data from the kibana logs based on the presence of the saved_object.id field. Do not start the transform yet.
 
     a) Create the transform using [transform.txt](./mon-cluster-side/transform.txt)
 
-10. Create a watch that re-executes the enrich policy when new objects are added, using [watcher.txt](./mon-cluster-side/watcher.txt).
+15. Create a watch that re-executes the enrich policy when new objects are added, using [watcher.txt](./mon-cluster-side/watcher.txt).
 
 > [!IMPORTANT]  
 > You'll need to first create an API Key for authorization of the request via Stack Management-> Security API Keys or in Dev Tools Console:
@@ -465,7 +599,7 @@ PUT _watcher/watch/policy-execute
 
 ***Starting up***
 
-11. Verify data is being ingested:
+16. Verify data is being ingested:
      
     a) Check the follower index to be sure that documents are populated
 
@@ -475,11 +609,11 @@ PUT _watcher/watch/policy-execute
 POST _transform/kibana-transform-02/_start
 ```
 
-12. Import the following assets via Stack Management -> Saved Objects:
+17. Import the following assets via Stack Management -> Saved Objects:
 - [post8.14-dashboard.ndjson](../assets/post8.14-dashboard.ndjson)
 
 ***Slowlog and Query capturing***
-13. In the monitoring cluster, ensure slowlogs are turned on for the individual indexes to be monitored. Example
+18. In the monitoring cluster, ensure slowlogs are turned on for the individual indexes to be monitored. Example
 ```
     PUT kibana_sample_data_ecommerce/_settings
     {
@@ -488,16 +622,5 @@ POST _transform/kibana-transform-02/_start
     }
 ```
 
-
-14. Using the Dev Tools console, create an ingest pipeline in the monitoring cluster for each pipeline in the [pipeline](../eck/mon-cluster-side/audit-logging-pipeline/) folder in this folder.
-
-15. Update the individual filbeat datastream to leverage this new pipeline with the example below
-```
-PUT filebeat-8.15.3/_settings
-{
-    "index.final_pipeline": "stack-uam-router"
-}
-```
-
-16. Import the following assets via Stack Management -> Saved Objects:
+19. Import the following assets via Stack Management -> Saved Objects:
 - [slowlog.ndjson](../assets/slowlog.ndjson)
