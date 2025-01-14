@@ -1,11 +1,10 @@
 PUT _ingest/pipeline/stack-uam-slowlog-extra
 {
-  "version": 10,
   "description": "Additional parsing of Elasticsearch slowlogs. Last update 2024-07-08.",
+  "version": 10,
   "processors": [
     {
       "dot_expander": {
-        "override": true,
         "field": "*"
       }
     },
@@ -180,6 +179,11 @@ PUT _ingest/pipeline/stack-uam-slowlog-extra
       }
     },
     {
+      "dot_expander": {
+        "field": "elasticsearch.slowlog.duration"
+      }
+    },
+    {
       "rename": {
         "field": "elasticsearch.slowlog.duration",
         "target_field": "elasticsearch.uam.search.duration",
@@ -202,11 +206,11 @@ PUT _ingest/pipeline/stack-uam-slowlog-extra
     },
     {
       "grok": {
-        "if": "ctx?.elasticsearch?.slowlog?.total_hits != '0+ hits'",
         "field": "elasticsearch.slowlog.total_hits",
         "patterns": [
-          "%{NUMBER:elasticsearch.uam.search.hits:double} hits"
+          "%{NUMBER:elasticsearch.uam.search.hits:double}(\\+)? hits"
         ],
+        "if": "ctx?.elasticsearch?.slowlog?.total_hits != '0+ hits'",
         "ignore_failure": true
       }
     },
@@ -225,6 +229,28 @@ PUT _ingest/pipeline/stack-uam-slowlog-extra
     {
       "remove": {
         "field": "elasticsearch.slowlog.flattened_map"
+      }
+    },
+    {
+      "gsub": {
+        "field": "elasticsearch.slowlog.took",
+        "pattern": ".*micros",
+        "replacement": "0ms"
+      }
+    },
+    {
+      "gsub": {
+        "field": "elasticsearch.slowlog.took",
+        "pattern": "ms",
+        "replacement": "",
+        "target_field": "elasticsearch.uam.search.duration",
+        "ignore_missing": true
+      }
+    },
+    {
+      "convert": {
+        "field": "elasticsearch.uam.search.duration",
+        "type": "long"
       }
     }
   ],
