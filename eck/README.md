@@ -7,16 +7,16 @@ This folder contains instructions on the full set of activities to complete the 
 This guide assumes the following:
 
 * A Platimun or Enterprise License
-* Transport and HTTP security setup.
+* Transport and HTTP security setup
 * A monitoring cluster (8.x) with trust established against the main cluster to enable CCR. Visit this [link](https://www.elastic.co/guide/en/cloud-on-k8s/current/k8s-remote-clusters.html) for more information on how to leverage remote cluster in ECK
 * Relevant permissions to access system indices, create API and manage configuration
-* Sudo access to the Kubernestes cluster running the ECK deployment.
+* Sudo access to the Kubernetes cluster running the ECK deployment.
 * Filebeat instances to ship auditing data from Kibana and Elastic to the monitoring cluster
   * [Run Filebeat on Kubernetes](https://www.elastic.co/guide/en/beats/filebeat/current/running-on-kubernetes.html)
   * [Run Beats on ECK](https://www.elastic.co/guide/en/cloud-on-k8s/current/k8s-beat.html)
 
 ***ECK Setup***
-Ensure that stack-monitoring is setup and audit loging is enabled. Below is an example ECK configuration that enables stack-moniotring and audit logging.
+Ensure that stack-monitoring is setup and audit logging is enabled. Below is an example ECK configuration that enables stack-monitoring and audit logging.
 
 ```yaml
 apiVersion: elasticsearch.k8s.elastic.co/v1
@@ -54,7 +54,7 @@ spec:
     xpack.security.audit.enabled: true
 ```
 
-This however might have large volumes of unncessay data shipped to monitoring cluster, we can levearge audit log filters to remove what is not needed and esnure only the right logs for UAM are shipped.
+This, however, might have large volumes of unnecessary data shipped to the monitoring cluster. We can leverage audit log filters to remove what is not needed and ensure only the right logs for UAM are shipped.
 
 Key highlights are the filtering in the elasticsearch config and the kibana config
 
@@ -174,9 +174,9 @@ xpack.security.audit.ignore_filters:
 3. In Dev Tools, set up the components and pipeline to create the kibana_objects_01 index which contains the object id to name mapping
 
     a) In Dev Tools Console (or via the API), create an ingest pipeline using the config from [ingest-pipeline.txt.](./main-cluster-side/ingest-pipeline.txt)
-    This ingest pipeline extracts the saved objet id from the "_id" field of documents in the kibana_analytics index and removes fields that are not required for analysis.
+    This ingest pipeline extracts the saved object id from the "_id" field of documents in the kibana_analytics index and removes fields that are not required for analysis.
 
-    b) Create a component template using the [component-template.txt](./main-cluster-side/component-template.txt) file. This template contains the mapping for the new kibana objects index and speicifes use of the ingest pipeline.
+    b) Create a component template using the [component-template.txt](./main-cluster-side/component-template.txt) file. This template contains the mapping for the new kibana objects index and specifies use of the ingest pipeline.
 
     c) Create an index template that uses the component template:
 
@@ -188,7 +188,7 @@ xpack.security.audit.ignore_filters:
     }
     ```
         
-    d) Reindex the existing kibana_analytics data into the new kibana index with the formlised mappings and ingest pipeline:
+    d) Reindex the existing kibana_analytics data into the new kibana index with the formalised mappings and ingest pipeline:
       ```
       POST _reindex
       {
@@ -201,7 +201,7 @@ xpack.security.audit.ignore_filters:
         }
       }
       ```
-4. Create and API key and add an advanced watch using the [watcher.txt](./main-cluster-side/watcher.txt) file. This watcher checks for new documents in the kibana_analytics system index and reindexes into the new kibana index if the condition is met.
+4. Create an API key and add an advanced watch using the [watcher.txt](./main-cluster-side/watcher.txt) file. This watcher checks for new documents in the kibana_analytics system index and reindexes into the new kibana index if the condition is met.
 
 > [!IMPORTANT]  
 > You'll need to first create an API Key for authorization of the request via Stack Management-> Security API Keys or in Dev Tools Console:
@@ -225,7 +225,7 @@ POST /_security/api_key
 }
 ```
 
-- Edit the Watcher before creating it and add in the Elasticsearch (.es.) host name from the kubernetes service and the encoded API Key. Note: When adding in the API key the line should start: "Authorization": "ApiKey xxxxxx" followed by a space and then the actual key value
+- Edit the Watcher before creating it and add in the Elasticsearch (.es.) host name from the Kubernetes service and the encoded API Key. Note: When adding in the API key the line should start: "Authorization": "ApiKey xxxxxx" followed by a space and then the actual key value
 
 Example:
 ```
@@ -299,7 +299,7 @@ As per the Main Cluster, security settings should also include xpack.http.ssl* v
 
 Configure the Main Cluster as a remote cluster:
 
-*Modify the “seeds” value as required. Note - the port should be the transport port. You can also do this via the UI and setup CCR with the main-cluster as leader index. But in most cases, rmeote cluster setup should have handle this
+*Modify the “seeds” value as required. Note - the port should be the transport port. You can also do this via the UI and setup CCR with the main-cluster as leader index. But in most cases, remote cluster setup should have handled this
 
 ```
 PUT _cluster/settings
@@ -324,7 +324,7 @@ PUT _cluster/settings
 }
 ```
 
-Configure the follower index for the main-cluster(s) ensure that the follower indexes begin with `kibana_objects-` in this example we have `kibana_objects-prod`. Update the remote cluster name to match the remote cluster from information from `GET _remote/info`
+Configure the follower index for the main-cluster(s). Ensure that the follower indices begin with `kibana_objects-`. In this example we have `kibana_objects-prod`. Update the remote cluster name to match the remote cluster from information from `GET _remote/info`
 ```
 PUT /kibana_objects-prod/_ccr/follow?wait_for_active_shards=1
 {
@@ -346,7 +346,7 @@ PUT /kibana_objects-prod/_ccr/follow?wait_for_active_shards=1
 }
 ```
 
-6. (Optional) Create ILM policy to ensure that the datastream lifecycle is managed
+6. (Optional) Create an ILM policy to ensure that the datastream lifecycle is managed
 ```
 PUT _ilm/policy/elastic-logs
 {
@@ -374,7 +374,7 @@ PUT _ilm/policy/elastic-logs
 }
 ```
 
-7. Create component template for the UAM fields
+7. Create a component template for the UAM fields
 ```
 PUT _component_template/elastic-logs-8-uam_mapping
 {
@@ -473,7 +473,7 @@ PUT _index_template/filebeat-8.15.3 # Change this value
   ],
 ```
 
-9. Create the ingest pipeline in the monitoring cluster for each pipeline in the [pipeline](../eck/mon-cluster-side/audit-logging-pipeline/) folder in this folder.
+9. Create the ingest pipeline in the monitoring cluster for each file in the [pipeline](./mon-cluster-side/audit-logging-pipeline/) folder.
 
 10. Rollover the datastream to enable it to use the updates
 
@@ -481,9 +481,9 @@ PUT _index_template/filebeat-8.15.3 # Change this value
 POST filebeat-8.15.3/_rollover
 ```
 
-11. Create an enrich processor using [enrich.txt](./mon-cluster-side/enrich.txt) and execute:
+11. Create an enrich policy using [enrich.txt](./mon-cluster-side/enrich.txt) and execute it:
 
-    b) Execute the processor
+    a) Execute the policy
 
   ```
   PUT _enrich/policy/objectid-policy/_execute
@@ -491,7 +491,7 @@ POST filebeat-8.15.3/_rollover
 
 12. Create an ingest pipeline using [ingest-pipeline.txt](./mon-cluster-side/ingest-pipeline.txt). This utilises the new enrichment policy and set processors to set the title of the object.
 
-13. Crete a component template to formalise mappings of the new enriched index that will be used for visualisations.
+13. Create a component template to formalise mappings of the new enriched index that will be used for visualizations.
 
     a) Use [component-template.txt](./mon-cluster-side/component-template.txt)
 
@@ -540,7 +540,7 @@ POST /_security/api_key
 }
 ```
 
-- Edit the Watcher before creating it and add in the Elasticsearch (.es.) host name and API Key. Note: When adding in the API key the line should start: "Authorization": "ApiKey xxxxxx" followed by a space and then the actual key value
+- Edit the Watcher before creating it and add in the Elasticsearch (.es.) host name and API Key. Note: When adding in the API key the line should start with: "Authorization": "ApiKey xxxxxx" followed by a space and then the actual key value
 
 Example:
 ```
@@ -599,7 +599,7 @@ PUT _watcher/watch/policy-execute
 
 ***Starting up***
 
-16. Verify data is being ingested:
+16. Verify that data is being ingested:
      
     a) Check the follower index to be sure that documents are populated
 
@@ -613,7 +613,7 @@ POST _transform/kibana-transform-02/_start
 - [post8.14-dashboard.ndjson](../assets/post8.14-dashboard.ndjson)
 
 ***Slowlog and Query capturing***
-18. In the monitoring cluster, ensure slowlogs are turned on for the individual indexes to be monitored. Example
+18. In the monitoring cluster, ensure slowlogs are turned on for the individual indices to be monitored. Example
 ```
     PUT kibana_sample_data_ecommerce/_settings
     {
