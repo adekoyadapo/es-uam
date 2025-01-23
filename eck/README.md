@@ -460,7 +460,7 @@ PUT _component_template/elastic-logs-8-uam_mapping
 }
 ```
 
-8. Update the individual filebeat with the values [here](./mon-cluster-side/audit-logging-pipeline/filebeat-index-template.txt) datastream index to allow the use of the component template and ilm policy above. This updated templates ensures the UAM fields are populated and that the final pipeline `stack-uam-router` is used by the indices. Replace the index_template name and also the target index-patterns before applying the changes
+8. Locate the filebeat datastream created in the monitoring cluster after enabling the audit logging. Take note of the filebeat index template name used by the datastream. Then, update the index template by using the filebeat template [here](./mon-cluster-side/filebeat-index-template.txt) to use the component template and ILM policy defined in the previous steps. This updated template ensures that the UAM fields are populated and that the final pipeline `stack-uam-router` is used by the indices. Replace the index_template name and also the target index-patterns before applying the changes.
 
 ```
 PUT _index_template/filebeat-8.15.3 # Change this value
