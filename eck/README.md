@@ -99,11 +99,11 @@ spec:
     - actions: [saved_object_open_point_in_time, saved_object_close_point_in_time, saved_object_find, space_find]
 ```
 
-Additionally to reduce the number of indices and templates shipped by individual filbeats, in a case where their are multiple deployment versions, we can adjust the manifest to ship the logs to one index `elastic-logs-8` for simplicity.
+In case where there are multiple deployment versions, to reduce the number of indices and templates shipped by individual filebeats, we can adjust the manifest to ship the logs to one index `elastic-logs-8` for simplicity.
 Example manifest(s) can be seen here [eck-manifests](./eck-manifests/)
 
 > [!IMPORTANT]
->The kibana manifest in [stack_monitoring.yml](./eck-manifests/stack_monitoring.yml) allows the update of the needed field in kibana `service.name` and `service.version` which allows the tracking of the elastic deployments and version.
+>The Kibana manifest in [stack_monitoring.yml](./eck-manifests/stack_monitoring.yml) allows the update of the needed field in kibana `service.name` and `service.version` which allows the tracking of the elastic deployments and version.
 
 ```yaml
       - name: filebeat
