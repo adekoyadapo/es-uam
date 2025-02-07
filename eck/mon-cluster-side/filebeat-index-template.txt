@@ -1,4 +1,4 @@
-PUT _index_template/filebeat-8.15.3
+PUT _index_template/elastic-logs-8
 {
   "version": 1,
   "priority": 1000,
@@ -4123,7 +4123,7 @@ PUT _index_template/filebeat-8.15.3
     }
   },
   "index_patterns": [
-    "filebeat-8.15.3"
+    "elastic-logs-8"
   ],
   "data_stream": {
     "hidden": false,

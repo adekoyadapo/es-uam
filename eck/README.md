@@ -99,6 +99,43 @@ spec:
     - actions: [saved_object_open_point_in_time, saved_object_close_point_in_time, saved_object_find, space_find]
 ```
 
+Additionally to reduce the number of indices and templates shipped by individual filbeats, in a case where their are multiple deployment versions, we can adjust the manifest to ship the logs to one index `elastic-logs-8` for simplicity.
+Example manifest(s) can be seen here [eck-manifests](./eck-manifests/)
+
+> [!IMPORTANT]
+>The kibana manifest in [stack_monitoring.yml](./eck-manifests/stack_monitoring.yml) allows the update of the needed field in kibana `service.name` and `service.version` which allows the tracking of the elastic deployments and version.
+
+```yaml
+      - name: filebeat
+        env:
+          - name: ES_VERSION
+            value: "8.17.1"
+          - name: ES_CLUSTER
+            value: "es-prod"
+          - name: ES_USERNAME
+            valueFrom:
+              secretKeyRef:
+                key: username
+                name: elastic-credentials # Needed to create the datastream index by filebeat
+          - name: ES_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                key: password
+                name: elastic-credentials # Needed to create the datastream index by filebeat
+        command: ["/bin/sh", "-c"]
+        args:
+          - > # Adjust filebeat to allow more args, change deafult index and add additional fields - service.name, service.version
+            filebeat -c /etc/filebeat-config/filebeat.yml
+            -E setup.template.name=elastic-logs-8
+            -E setup.template.pattern=elastic-logs-8*
+            -E output.elasticsearch.index=elastic-logs-8
+            -E output.elasticsearch.username=$(ES_USERNAME)
+            -E output.elasticsearch.password=$(ES_PASSWORD)
+            -E processors.2.add_fields.fields={service.name:$(ES_CLUSTER)} 
+            -E processors.2.add_fields.fields={service.version:$(ES_VERSION)}
+            -e
+```
+
 ***Main Cluster***
 
 1. Ensure security settings have been enabled in the ECK config 
@@ -460,25 +497,15 @@ PUT _component_template/elastic-logs-8-uam_mapping
 }
 ```
 
-8. Locate the filebeat datastream created in the monitoring cluster after enabling the audit logging. Take note of the filebeat index template name used by the datastream. Then, update the index template by using the filebeat template [here](./mon-cluster-side/filebeat-index-template.txt) to use the component template and ILM policy defined in the previous steps. This updated template ensures that the UAM fields are populated and that the final pipeline `stack-uam-router` is used by the indices. Replace the index_template name and also the target index-patterns before applying the changes.
+8. Locate the filebeat datastream created in the monitoring cluster after enabling the audit logging. Take note of the filebeat index template name used by the datastream `elastic-logs-8`. Then, update the index template by using the filebeat template [here](./mon-cluster-side/filebeat-index-template.txt) to use the component template and ILM policy defined in the previous steps. This updated template ensures that the UAM fields are populated and that the final pipeline `stack-uam-router` is used by the indices. Replace the index_template name and also the target index-patterns before applying the changes.
 
-```
-PUT _index_template/filebeat-8.15.3 # Change this value
-```
-
-```
-# also update this section
-  "index_patterns": [
-    "filebeat-8.15.3"
-  ],
-```
 
 9. Create the ingest pipeline in the monitoring cluster for each file in the [pipeline](./mon-cluster-side/audit-logging-pipeline/) folder.
 
 10. Rollover the datastream to enable it to use the updates
 
 ```
-POST filebeat-8.15.3/_rollover
+POST elastic-logs-8/_rollover
 ```
 
 11. Create an enrich policy using [enrich.txt](./mon-cluster-side/enrich.txt) and execute it:
@@ -615,11 +642,11 @@ POST _transform/kibana-transform-02/_start
 ***Slowlog and Query capturing***
 18. In the monitoring cluster, ensure slowlogs are turned on for the individual indices to be monitored. Example
 ```
-    PUT kibana_sample_data_ecommerce/_settings
-    {
-        "index.search.slowlog.threshold.query.info": "0ms",
-        "index.search.slowlog.threshold.fetch.info": "0ms"
-    }
+PUT kibana_sample_data_ecommerce/_settings
+{
+  "index.search.slowlog.threshold.query.info": "0ms",
+  "index.search.slowlog.threshold.fetch.info": "0ms"
+}
 ```
 
 19. Import the following assets via Stack Management -> Saved Objects:
