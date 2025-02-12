@@ -12,7 +12,7 @@ PUT _ingest/pipeline/stack-uam-router
         {
             "pipeline": {
                 "name": "stack-uam-slowlog-extra",
-                "if": "ctx?.event?.dataset == 'elasticsearch.index_search_slowlog'"
+                "if": "ctx?.event?.dataset == 'elasticsearch.slowlog' || ctx?.event?.dataset == 'elasticsearch.index_search_slowlog'"
             }
         }
     ]
