@@ -330,10 +330,30 @@ PUT _watcher/watch/kibana-reindex
 ***Monitoring Deployment***
 - The files needed for this section are contained in [mon-cluster-side folder](./mon-cluster-side/).
 
+Similar to the Main Cluster, security settings should also include xpack.http.ssl* values to allow the watcher reindex action.
+
+Example config:
+
+```
+xpack.security.enrollment.enabled: true
+xpack.security.enabled: true
+xpack.security.http.ssl.enabled: true
+xpack.security.http.ssl.keystore.path: /path-to/config/certs/elastic-certificates.p12
+xpack.security.http.ssl.truststore.path: /path-to/config/certs/truststore.p12
+xpack.security.http.ssl.verification_mode: certificate
+
+xpack.http.ssl.keystore.path: /path-to/config/certs/elastic-certificates.p12
+xpack.http.ssl.truststore.path: /path-to/config/certs/truststore.p12
+xpack.http.ssl.verification_mode: certificate
+
+xpack.security.transport.ssl.enabled: true
+xpack.security.transport.ssl.keystore.path: /path-to/config/certs/elastic-certificates.p12
+xpack.security.transport.ssl.truststore.path: /path-to/config/certs/truststore.p12
+xpack.security.transport.ssl.verification_mode: certificate
+```
+
 The Monitoring Cluster should be set up to trust the Main Cluster. This needs to be done at the config level. For more information, see: ​​[Add remote clusters using TLS certificate authentication | Elasticsearch Guide [8.17] | Elastic
 ](https://www.elastic.co/guide/en/elasticsearch/reference/current/remote-clusters-cert.html)
-
-As per the Main Cluster, security settings should also include xpack.http.ssl* values to accommodate the watcher webhook action.
 
 Configure the Main Cluster as a remote cluster:
 
