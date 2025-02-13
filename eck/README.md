@@ -99,7 +99,7 @@ spec:
     - actions: [saved_object_open_point_in_time, saved_object_close_point_in_time, saved_object_find, space_find]
 ```
 
-In case where there are multiple deployment versions, to reduce the number of indices and templates shipped by individual filebeats, we can adjust the manifest to ship the logs to one index `elastic-logs-8` for simplicity.
+In cases where there are multiple deployment versions, to reduce the number of indices and templates shipped by individual filebeats, we can adjust the manifest to ship the logs to one index `elastic-logs-8` for simplicity.
 Example manifest(s) can be seen here [eck-manifests](./eck-manifests/)
 
 > [!IMPORTANT]
@@ -315,13 +315,14 @@ PUT _watcher/watch/kibana-reindex
 }
 ```
 
-5. Still in the Dev Tools console, add slowlog settings for any indices of interest. Note: consider adding these settings to index templates so future indices automatically inherit the settings upon creation.
+5. Still in the Dev Tools console, add slowlog settings for any indices of interest. Optionally, if you'd like to include information about the user that triggered a slow search, use the `index.search.slowlog.include.user` setting. Note: consider adding these settings to index templates so future indices automatically inherit the settings upon creation.
 
     ```
     PUT kibana_sample_data_ecommerce/_settings
     {
         "index.search.slowlog.threshold.query.info": "0ms",
-        "index.search.slowlog.threshold.fetch.info": "0ms"
+        "index.search.slowlog.threshold.fetch.info": "0ms",
+        "index.search.slowlog.include.user": true
     }
     ```
 
@@ -329,10 +330,30 @@ PUT _watcher/watch/kibana-reindex
 ***Monitoring Deployment***
 - The files needed for this section are contained in [mon-cluster-side folder](./mon-cluster-side/).
 
-The Monitoring Cluster should be set up to trust the Main Cluster. This needs to be done at the config level. For more information, see: ​​[Add remote clusters using TLS certificate authentication | Elasticsearch Guide [8.11] | Elastic
-](https://www.elastic.co/guide/en/elasticsearch/reference/current/remote-clusters-cert.html)
+Similar to the Main Cluster, security settings should also include xpack.http.ssl* values to allow the watcher reindex action.
 
-As per the Main Cluster, security settings should also include xpack.http.ssl* values to accommodate the watcher webhook action.
+Example config:
+
+```
+xpack.security.enrollment.enabled: true
+xpack.security.enabled: true
+xpack.security.http.ssl.enabled: true
+xpack.security.http.ssl.keystore.path: /path-to/config/certs/elastic-certificates.p12
+xpack.security.http.ssl.truststore.path: /path-to/config/certs/truststore.p12
+xpack.security.http.ssl.verification_mode: certificate
+
+xpack.http.ssl.keystore.path: /path-to/config/certs/elastic-certificates.p12
+xpack.http.ssl.truststore.path: /path-to/config/certs/truststore.p12
+xpack.http.ssl.verification_mode: certificate
+
+xpack.security.transport.ssl.enabled: true
+xpack.security.transport.ssl.keystore.path: /path-to/config/certs/elastic-certificates.p12
+xpack.security.transport.ssl.truststore.path: /path-to/config/certs/truststore.p12
+xpack.security.transport.ssl.verification_mode: certificate
+```
+
+The Monitoring Cluster should be set up to trust the Main Cluster. This needs to be done at the config level. For more information, see: ​​[Add remote clusters using TLS certificate authentication | Elasticsearch Guide [8.17] | Elastic
+](https://www.elastic.co/guide/en/elasticsearch/reference/current/remote-clusters-cert.html)
 
 Configure the Main Cluster as a remote cluster:
 
@@ -411,91 +432,7 @@ PUT _ilm/policy/elastic-logs
 }
 ```
 
-7. Create a component template for the UAM fields
-```
-PUT _component_template/elastic-logs-8-uam_mapping
-{
-  "template": {
-    "mappings": {
-      "properties": {
-        "elasticsearch": {
-          "properties": {
-            "uam": {
-              "properties": {
-                "saved_object": {
-                  "properties": {
-                    "id": {
-                      "ignore_above": 1024,
-                      "type": "keyword"
-                    }
-                  }
-                },
-                "search": {
-                  "properties": {
-                    "date_range": {
-                      "properties": {
-                        "duration": {
-                          "type": "long"
-                        },
-                        "from": {
-                          "ignore_above": 1024,
-                          "type": "keyword"
-                        },
-                        "to": {
-                          "ignore_above": 1024,
-                          "type": "keyword"
-                        }
-                      }
-                    },
-                    "duration": {
-                      "type": "long"
-                    },
-                    "hits": {
-                      "type": "float"
-                    },
-                    "query": {
-                      "ignore_above": 1024,
-                      "type": "keyword"
-                    },
-                    "index": {
-                      "ignore_above": 1024,
-                      "type": "keyword"
-                    },
-                    "id": {
-                      "ignore_above": 1024,
-                      "type": "keyword"
-                    },
-                    "aggregations": {
-                      "ignore_above": 1024,
-                      "type": "keyword"
-                    }
-                  }
-                },
-                "application": {
-                  "ignore_above": 1024,
-                  "type": "keyword"
-                },
-                "opaque_id": {
-                  "ignore_above": 1024,
-                  "type": "keyword"
-                },
-                "origination": {
-                  "ignore_above": 1024,
-                  "type": "keyword"
-                },
-                "error": {
-                  "ignore_above": 1024,
-                  "type": "keyword"
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-}
-```
+7. Create a component template for the UAM fields using the [logs_uam-component-template.txt](./mon-cluster-side/logs_uam-component-template.txt) 
 
 8. Locate the filebeat datastream created in the monitoring cluster after enabling the audit logging. Take note of the filebeat index template name used by the datastream `elastic-logs-8`. Then, update the index template by using the filebeat template [here](./mon-cluster-side/filebeat-index-template.txt) to use the component template and ILM policy defined in the previous steps. This updated template ensures that the UAM fields are populated and that the final pipeline `stack-uam-router` is used by the indices. Replace the index_template name and also the target index-patterns before applying the changes.
 
@@ -520,7 +457,7 @@ POST elastic-logs-8/_rollover
 
 13. Create a component template to formalise mappings of the new enriched index that will be used for visualizations.
 
-    a) Use [component-template.txt](./mon-cluster-side/component-template.txt)
+    a) Create a component template using [transform-component-template.txt](./mon-cluster-side/transform-component-template.txt)
 
     b) Create an index template using the new component template:
 
@@ -640,12 +577,13 @@ POST _transform/kibana-transform-02/_start
 - [post8.14-dashboard.ndjson](../assets/post8.14-dashboard.ndjson)
 
 ***Slowlog and Query capturing***
-18. In the monitoring cluster, ensure slowlogs are turned on for the individual indices to be monitored. Example
+18. In the main cluster, ensure that slowlogs are turned on for the individual indices to be monitored. Example
 ```
 PUT kibana_sample_data_ecommerce/_settings
 {
   "index.search.slowlog.threshold.query.info": "0ms",
-  "index.search.slowlog.threshold.fetch.info": "0ms"
+  "index.search.slowlog.threshold.fetch.info": "0ms",
+  "index.search.slowlog.include.user": true
 }
 ```
 
