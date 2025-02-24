@@ -96,7 +96,7 @@ PUT _ingest/pipeline/stack-uam-slowlog-extra
           "%{GREEDYDATA}gte=%{TIMESTAMP_ISO8601:elasticsearch.uam.search.date_range.from}, lte=%{TIMESTAMP_ISO8601:elasticsearch.uam.search.date_range.to}%{GREEDYDATA}",
           "%{GREEDYDATA}, lte=%{TIMESTAMP_ISO8601:elasticsearch.uam.search.date_range.to}, gt=%{TIMESTAMP_ISO8601:elasticsearch.uam.search.date_range.from}%{GREEDYDATA}",
           "%{GREEDYDATA}, gte=%{NUMBER:elasticsearch.uam.search.date_range.from},%{GREEDYDATA}, lte=%{NUMBER:elasticsearch.uam.search.date_range.to}%{GREEDYDATA}",
-          "%{GREEDYDATA}, gte=%{TIMESTAMP_ISO8601:elasticsearch.uam.search.date_range.to}%{GREEDYDATA}lte=%{TIMESTAMP_ISO8601:elasticsearch.uam.search.date_range.from}%{GREEDYDATA}"
+          "%{GREEDYDATA}, gte=%{TIMESTAMP_ISO8601:elasticsearch.uam.search.date_range.from}%{GREEDYDATA}lte=%{TIMESTAMP_ISO8601:elasticsearch.uam.search.date_range.to}%{GREEDYDATA}"
         ],
         "ignore_missing": true,
         "if": "ctx?.elasticsearch?.uam?.search?.query != '' && ctx?.elasticsearch?.uam?.search?.query != null",
